@@ -1,0 +1,35 @@
+\documentclass[sigplan,anonymous,review]{acmart}
+\usepackage[utf8]{inputenc}
+
+\title{Automated, Atomic Refactoring In A Legacy C++ Code Base}
+\author{Jesse Zhang}
+\date{January 2021}
+
+\begin{document}
+
+\maketitle
+
+\section{Abstract}
+Refactoring in large code bases is difficult, especially when it cannot be done incrementally. A common refactoring goal is to use smart pointers instead of explicit reference counting. Another is to switch from internal data structures to ones shipped in the standard library. In this paper, we present principles of building a refactoring tool using semantic markers. We will show a real-world application of such principles in a Clang-based tool that infers the pointer ownership semantics from our legacy code and performs automatic conversion to a new smart pointer-based memory management model. The conversion is done in three stages: 1) a “base” stage that attaches semantic markers on function return types, variable and parameter types, and class data member types; 2) a “propagation” stage that iteratively propagates the markers to more places using a set of pattern-based rules until it reaches a fixed point; and finally 3) a conversion phase that removes the markers left by the prior stages and rewrites raw pointers into smart pointers accordingly. Limitations of the pattern rules and planned optimizations with control-flow analysis are discussed.
+
+\section{Introduction}
+* Motivation: Large projects / codebases rot. Cite
+* Challenges: Manual change is infeasible because of size
+* Incremental change is infeasible because of the specific problem
+* Need codebase specific knowledge. No off-the-shelf / self-learning / ready tools. {cite tools}
+
+\section{Motivation}
+
+\section{Related Work}
+
+\section{Our Approach}
+Expand on the abstract.
+
+\subsection{semantic markers}
+
+\section{Conclusions}
+
+\section{Future Work}
+
+\end{document}
+
