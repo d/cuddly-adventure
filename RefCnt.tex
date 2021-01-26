@@ -1,26 +1,68 @@
 \documentclass[sigplan,anonymous,review]{acmart}
 \usepackage[utf8]{inputenc}
+\usepackage{listings}
 
 \title{Automated, Atomic Refactoring In A Legacy C++ Code Base}
 \author{Jesse Zhang}
 \date{January 2021}
 
+\newcommand{\AR}{\lstinline{AddRef}}
+\newcommand{\R}{\lstinline{Release}}
 \begin{document}
 
 \maketitle
 
 \section{Abstract}
-Refactoring in large code bases is difficult, especially when it cannot be done incrementally. A common refactoring goal is to use smart pointers instead of explicit reference counting. Another is to switch from internal data structures to ones shipped in the standard library. In this paper, we present principles of building a refactoring tool using semantic markers. We will show a real-world application of such principles in a Clang-based tool that infers the pointer ownership semantics from our legacy code and performs automatic conversion to a new smart pointer-based memory management model. The conversion is done in three stages: 1) a “base” stage that attaches semantic markers on function return types, variable and parameter types, and class data member types; 2) a “propagation” stage that iteratively propagates the markers to more places using a set of pattern-based rules until it reaches a fixed point; and finally 3) a conversion phase that removes the markers left by the prior stages and rewrites raw pointers into smart pointers accordingly. Limitations of the pattern rules and planned optimizations with control-flow analysis are discussed.
+Refactoring in large code bases is difficult, especially when it cannot be done incrementally.
+A common refactoring goal is to use smart pointers instead of explicit reference counting.
+Another is updating legacy C++98 code to C++14 to improve readability by taking advantage of new language features (such as range-based for-loops).
+In this paper, we present principles of building a refactoring tool using semantic markers.
+We will show a real-world application of such principles in a Clang-based tool that infers the pointer ownership semantics from our legacy code and performs automatic conversion to a new smart pointer-based memory management model.
+The conversion is done in three stages:
+\begin{enumerate}
+	\item a ``base'' stage that attaches semantic markers on function return types, variable and parameter types, and class data member types;
+	\item a “propagation” stage that iteratively propagates the markers to more places using a set of pattern-based rules until it reaches a fixed point; and finally
+	\item a conversion phase that removes the markers left by the prior stages and rewrites raw pointers into smart pointers accordingly.
+\end{enumerate}
+Limitations of the pattern rules and planned optimizations with control-flow analysis are discussed.
 
 \section{Introduction}
-* Motivation: Large projects / codebases rot. Cite
-* Challenges: Manual change is infeasible because of size
-* Incremental change is infeasible because of the specific problem
-* Need codebase specific knowledge. No off-the-shelf / self-learning / ready tools. {cite tools}
 
-\section{Motivation}
+The ORCA query optimizer is developed in C++ over the span of a decade.
+It uses a manual reference counting method for managing object lifetime,
+inspired by the Win32 COM model \cite{COMRefCount}.
+The general rule for managing reference count is to call \AR{} when a pointer crosses crosses an ownership boundary (e.g. passed as argument to a method call, being returned from a function, etc.), and to call \R{} when we intend to destroy the pointee of a pointer (abbreviated as ``destroying a pointer'' hereafter).
+% TODO: why is this undesirable?
+This general rule is quite conducive to a straightfoward modernizing refactoring:
+\begin{enumerate}
+	\item Introduce a RAII-style smart pointer type \lstinline{Ref<T>} that wraps a pointer (``raw pointers'' hereafter, to make it more distinguishable from ``smart pointers''). Such a smart poiner calls \AR{} and \R{} on copy and destruction, respectively.
+	\item Replace all variable declartions of pointer type \lstinline{T*} with \lstinline{Ref<T>} where \lstinline{T} is a reference counting type.
+	\item Remove all calls to \AR{} and \R{} (outside of the smart pointer class)
+\end{enumerate}
+
+There are several exceptions to the general rule though:
+\begin{enumerate}
+	\item A function can take advantage of the nested lifetime and not require its callers to \AR{} for a parameter.
+	\item A function can also ``move'' a reference count it has obtained to a function it calls when passing an argument, if the caller is sure this is safe (e.g. returning a pointer carrying with a reference count, and passing a pointer argument in a tail call).
+\end{enumerate}
+
+These exceptional usage patterns mean that wholesale replacement of raw pointers with smart pointers will incur a performance cost: extraneous reference count manipulations that are avoided in the old code will happen in the new code.
+
+We'd like to explore a refactoring approach that not only produces correct new code (as in, no leaks or double-free), but is as performance preserving as possible: namely we want to identify as many of the following two kinds of opportunities as possible:
+
+\begin{enumerate}
+	\item places (variable declarations, function return types, and class data member declarations) where smart pointers are \emph{not} necessary.
+	\item places where reference counts are ``moved''. i.e. those are spots where smart pointers will be used, but care will be taken to eliminate reference count manipulation using move semantics \cite{HinnantMove} from C++11.
+\end{enumerate}
+
 
 \section{Related Work}
+
+Empirical studies have confirmed that large software projects ``rot'' over timei \cite{EickCodeDecay}.
+Indeed, as a project grows its usefulness, it also grows in complexity and size.
+This usually makes it difficult to take advantage of new language features or new API's in libraries as they become available, typically due to accumulation of technical debt \cite{KlingerTechDebt}:
+\cite{WrightClangMR} presents an anecdote where the use of an old library API is so ubiquitous in Google that new changes continuously introduce more uses of the old API the authors aimed to replace,
+and a manual ad-hoc effort in modernizing the codebase is easily outpaced.
 
 \section{Our Approach}
 Expand on the abstract.
@@ -30,6 +72,9 @@ Expand on the abstract.
 \section{Conclusions}
 
 \section{Future Work}
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{bib}
 
 \end{document}
 
